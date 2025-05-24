@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Результаты проверки</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.1);
+        }
+
+        h2, h3 {
+            color: #333;
+        }
+
+        .info, .result, .comment-block {
+            margin-bottom: 25px;
+        }
+
+        .result.correct {
+            color: green;
+            font-weight: bold;
+        }
+
+        .result.incorrect {
+            color: red;
+            font-weight: bold;
+        }
+
+        .answers {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .comment-block {
+            padding: 10px;
+            background: #eef;
+            border-left: 4px solid #00f;
+            font-style: italic;
+        }
+
+        .date-block {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .download-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Результаты попытки</h2>
+
+        <div class="info">
+            <p><strong>ФИО:</strong> {{ fio }}</p>
+            <p><strong>Номер прогона:</strong> {{ run_number }}</p>
+            <p><strong>Номер попытки:</strong> {{ attempts_left }}/3</p>
+            <p class="date-block"><strong>Дата и время выполнения:</strong> {{ now }}</p>
+        </div>
+
+        <div class="result {% if is_correct %}correct{% else %}incorrect{% endif %}">
+            {% if is_correct %}
+                ✅ Все ответы верны!
+            {% else %}
+                ❌ Некоторые ответы неверны. Проверьте значения.
+            {% endif %}
+        </div>
+
+        <h3>Ответы пользователя</h3>
+        <div class="answers">{{ answers }}</div>
+
+        <h3>Комментарий пользователя</h3>
+        <div class="comment-block">{{ comment }}</div>
+
+        <h3>Ожидаемые ответы (эталон)</h3>
+        <div class="answers">{{ expected }}</div>
+
+        {% if attempts_left > 0 %}
+            <a class="download-button" href="#" onclick="downloadReport()"> Скачать отчет</a>
+        <a class="download-button" href="#" onclick="downloadProtocol()"> Скачать протокол</a>
+        {% else %}
+            <a class="download-button" href="#" onclick="downloadReport()"> Скачать отчет</a>
+        <a class="download-button" href="#" onclick="downloadProtocol()"> Скачать протокол</a>
+        {% endif %}
+        <form method="post"><button type="submit">Следующая попытка</button></form>
+    </div>
+<script>
+function downloadFile(content, filename) {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function downloadReport() {
+    fetch("{% url 'get_report_content' %}")
+        .then(response => response.json())
+        .then(data => {
+            downloadFile(data.content, data.filename);
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function downloadProtocol() {
+    fetch("{% url 'get_protocol_content' %}")
+        .then(response => response.json())
+        .then(data => {
+            downloadFile(data.content, data.filename);
+        })
+        .catch(error => console.error('Error:', error));
+}
+</script>
+</body>
+</html>

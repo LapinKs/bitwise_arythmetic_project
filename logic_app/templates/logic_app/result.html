@@ -105,7 +105,8 @@
             <a class="download-button" href="#" onclick="downloadReport()"> Скачать отчет</a>
         <a class="download-button" href="#" onclick="downloadProtocol()"> Скачать протокол</a>
         {% endif %}
-        <form method="post"><button type="submit">Следующая попытка</button></form>
+        <a class="download-button"><form method="post" action="{% url 'graph' %}" >{% csrf_token %}<button type="submit" style="background-color: #0d6efd; color: white; border: none; border-radius: 4px; cursor: pointer;">Следующая попытка</button></form></a>
+         <a class="download-button"><form method="post" action="{% url 'verification' %}" >{% csrf_token %}<button type="submit" style="background-color: #0d6efd; color: white; border: none; border-radius: 4px; cursor: pointer;">Верификация</button></form></a>
     </div>
 <script>
 function downloadFile(content, filename) {

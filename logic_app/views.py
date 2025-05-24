@@ -169,6 +169,34 @@ def start_view(request):
 
     return render(request, "logic_app/start.html")
 
+def verification_view(request):
+    # Получаем данные из GET-параметров
+    fio = request.GET.get("fio", "")
+    run_number = request.GET.get("run", "")
+    attempts_left = int(request.GET.get("attempts", 3))
+    # Десериализуем данные из JSON строк
+    elements_json = request.GET.get("elements", "[]")
+    level_labels_json = request.GET.get("level_labels", "[]")
+    table_data_json = request.GET.get("table_data", "[]")
+    max_level = request.GET.get("max_level", 0)
+    try:
+        elements = json.loads(elements_json)
+        level_labels = json.loads(level_labels_json)
+        table_data = json.loads(table_data_json)
+    except json.JSONDecodeError:
+        elements = []
+        level_labels = []
+        table_data = []
+
+    return render(request, "logic_app/graph.html", {
+        "elements": elements,
+        "level_labels": level_labels,
+        "table_data": table_data,
+        "fio": fio,
+        "run_number": run_number,
+        "max_level": max_level,
+        "attempts_left": attempts_left,
+    })
 
 def verify_view(request):
     if request.method == "POST":

@@ -168,50 +168,7 @@
 </head>
 <body>
  <div style="margin: 10px; font-size: 18px;">
-    <h2>Пользователь: {{ fio }}</h2>
-<h3>Прогон № {{ run_number }}</h3>
 </div>
-<div class ="mainc">
-    <div class = "vished"><h2>Визуализация графа</h2></div><div class="tooltip-container">
-    <button style="padding: 8px 12px; background-color: #0d6efd; color: white; border: none; border-radius: 4px;">
-        ❓ Инструкция
-    </button>
-    <div class="tooltip-content" style="">
-        <h2>Инструкция по работе</h2>
-
-    <h3>1. Общая структура графа</h3>
-    <p>Всего <strong>n</strong> уровней графа:</p>
-    <ul>
-        <li><strong>1 уровень:</strong> Вершины содержат начальные числа, записанные в формате число_основание числовой системы.</li>
-        <li><strong>2 - (n-1) уровень:</strong> Вершины представляют собой операции над входными числами.</li>
-        <li><strong>n уровень:</strong> Выходной уровень модели, на котором необходимо сформировать ответ.</li>
-    </ul>
-
-    <h3>2. Формат текстовой информации в вершинах графа</h3>
-    <p>Каждая вершина содержит три строки:</p>
-    <ol>
-        <li>Первая строка — знак операции.</li>
-        <li>Вторая строка — номера вершин предыдущего уровня (например: (0,2,3,5), нумерация начинается с 0).</li>
-        <li>Третья строка — ответ в формате число_основание числовой системы.</li>
-    </ol>
-
-    <h3>3. Задача пользователя</h3>
-    <p>Вам необходимо дать столько ответов в формате число_основание, сколько имеется вершин на последнем уровне графа.</p>
-
-    <h3>4. Проверка ответа</h3>
-    <ul>
-        <li>Доступно <strong>3 попытки</strong> для проверки вашего ответа.</li>
-        <li>После каждой попытки можно <strong>скачать результат тестирования</strong>.</li>
-        <li>После финальной попытки можно:
-            <ul>
-                <li>Скачать <strong>протокол работы эталонной модели алгоритма</strong>.</li>
-                <li>Просмотреть <strong>верификатор</strong>, который сравнивает результаты работы текущей модели и эталонной программы алгоритма.</li>
-            </ul>
-        </li>
-    </ul>
-    </div>
-</div>
-    </div>
     <div id="cy-container">
         <div id="cy"></div>
     </div>
@@ -366,21 +323,6 @@
   {% csrf_token %}
       <div style="border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin-right: auto; margin-top: 10px; max-width: 68%; background-color: #f8f9fa;">
 
-        <label for="answers" style="display: block; margin-bottom: 6px;">
-            Введите ответы:
-        </label>
-
-        <input type="text" id="answers" name="answers"
-               style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 8px;">
-          <label for="answers" style="display: block; margin-bottom: 6px;">
-            Введите комментарий:
-        </label>
-        <input type="text" id="сomment" name="comment"
-               style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 8px;">
-
-        <div style="font-size: 0.875rem; color: #6c757d; margin-bottom: 12px;">
-            Требуется {{ ответы }} ответов в формате: число_основание
-        </div>
 <input type="hidden" name="fio" value="{{ fio }}">
     <input type="hidden" name="run_number" value="{{ run_number }}">
     <input type="hidden" name="attempts_left" value="{{ attempts_left }}">

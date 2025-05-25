@@ -5,18 +5,23 @@ MAX_LEVELS = 10
 MAX_NODES_PER_LEVEL = 10
 MAX_NUMBER = 7
 MAX_BASE = 10
-
+OP_SYMBOLS = {
+    "OR": "∨", "AND": "∧", "XOR": "⊕", "EQUIV": "≡", "IMPLIES": "→",
+    "NAND": "|", "NOR": "↓", "NOT_IMPLIES": "¬→", "NOT_X": "¬x", "X": "x",
+    "Y": "y", "LEFT": "←", "NOT_LEFT": "¬←", "NOT_Y": "¬y"
+}
 OPERATIONS = [
     "OR", "AND", "XOR", "EQUIV", "IMPLIES", "NAND", "NOR",
     "NOT_IMPLIES", "NOT_X", "X", "Y", "LEFT", "NOT_LEFT", "NOT_Y"
 ]
 
 OPERATION_INPUT_RULES = {
-    0: (2, None), 1: (2, None), 2: (2, None), 3: (2, None),
-    4: (2, None), 5: (2, None), 6: (2, None), 7: (2, None),
-    8: (2, None), 9: (2, None), 10: (2, None), 11: (2, None),
-    12: (2, None), 13: (2, None)
+    0: (1, None), 1: (1, None), 2: (1, None), 3: (1, None),
+    4: (1, None), 5: (1, None), 6: (1, None), 7: (1, None),
+    8: (1, None), 9: (1, None), 10: (1, None), 11: (1, None),
+    12: (1, None), 13: (1, None)
 }
+
 
 
 def int_to_base(n, base):
@@ -38,8 +43,9 @@ def apply_operation(op_code, inputs_bin):
             bits = [int(x[i]) for x in inputs_bin]
         except IndexError:
             return '0' * length
+
         a = bits[0]
-        b = bits[1] if len(bits) > 1 else 0
+        b = bits[1] if len(bits) > 1 else a  # <--- вот ключ: если второго нет, используем a
 
         match OPERATIONS[op_code]:
             case "AND": res = int(a and b)
@@ -59,6 +65,7 @@ def apply_operation(op_code, inputs_bin):
             case _: res = 0
         result.append(str(res))
     return ''.join(result)
+
 
 
 def generate_quasi_uniform_bases(count, min_base=2, max_base=10):
@@ -133,6 +140,49 @@ def generate_logic_graph():
             operation.extend([out_base, result_in_base, result_bin])
 
     return tuple(levels)
+
+from collections import defaultdict
+
+def enrich_table_data_with_operations(table_data):
+    enriched_by_level = defaultdict(list)
+
+    # Собираем данные по уровням
+    levels = defaultdict(list)
+    for row in table_data:
+        levels[row["level"]].append(row)
+
+    for row in table_data:
+        level = row["level"]
+        if level == 0:
+            continue  # Пропускаем первый уровень
+
+        # Парсим входы
+        inputs = row["inputs"]
+        if isinstance(inputs, str):
+            input_indices = [int(i) for i in inputs.replace(",", " ").split() if i.strip().isdigit()]
+        else:
+            input_indices = inputs
+
+        args = []
+        for idx in input_indices:
+            prev = next((r for r in levels[level - 1] if r["node"] == idx), None)
+            if prev:
+                args.append(f'{prev["result"]}_{prev["base"]}')
+
+        op_symbol = OP_SYMBOLS.get(row["operation"], row["operation"])
+        operation_expr = f" {op_symbol} ".join(args)
+        final_result = f'{row["result"]}_{row["base"]}'
+
+        enriched_by_level[level].append({
+            "level": level,
+            "node": row["node"],
+            "operation_expr": operation_expr,
+            "reference_result": final_result,
+            "verifier_result": final_result  # Пока одинаково, можно заменить позже
+        })
+
+    return dict(enriched_by_level)
+
 # def generate_protocol_simplified(levels):
 #     lines = []
 #     lines.append("ПРОТОКОЛ МОДЕЛИ")

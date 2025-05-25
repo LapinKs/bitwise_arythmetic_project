@@ -2,22 +2,26 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.utils.http import urlencode
 import json
-from .utils import generate_logic_graph, OPERATIONS
+from .utils import generate_logic_graph, OPERATIONS, enrich_table_data_with_operations
 from django.template.defaulttags import register
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse, FileResponse
 import os
 from datetime import datetime
-#generate_protocol_simplified
+
+
+# generate_protocol_simplified
 @register.filter
 def groupby(value, arg):
     return itertools.groupby(value, lambda x: x[arg])
+
 
 OP_SYMBOLS = {
     "OR": "∨", "AND": "∧", "XOR": "⊕", "EQUIV": "≡", "IMPLIES": "→",
     "NAND": "|", "NOR": "↓", "NOT_IMPLIES": "¬→", "NOT_X": "¬x", "X": "x",
     "Y": "y", "LEFT": "←", "NOT_LEFT": "¬←", "NOT_Y": "¬y"
 }
+
 
 @csrf_exempt
 def save_attempt_log(request):
@@ -27,7 +31,7 @@ def save_attempt_log(request):
         log_text = data.get("log", "")
         filename = "attempt_log.txt"
         with open(filename, "a", encoding="utf-8") as f:
-            f.write(log_text + "\n" + "="*80 + "\n")
+            f.write(log_text + "\n" + "=" * 80 + "\n")
         return JsonResponse({"status": "ok"})
     return JsonResponse({"error": "Invalid method"}, status=405)
 
@@ -42,6 +46,8 @@ def download_protocol(request):
         response = HttpResponse(f.read(), content_type='text/plain')
         response['Content-Disposition'] = f'attachment; filename="protocol.txt"'
         return response
+
+
 def graph_view(request):
     # Получаем данные из GET-параметров
     fio = request.GET.get("fio", "")
@@ -60,6 +66,7 @@ def graph_view(request):
         elements = []
         level_labels = []
         table_data = []
+    enriched_table = enrich_table_data_with_operations(table_data)
 
     return render(request, "logic_app/graph.html", {
         "elements": elements,
@@ -69,6 +76,8 @@ def graph_view(request):
         "run_number": run_number,
         "max_level": max_level,
         "attempts_left": attempts_left,
+        "enriched_rows": enriched_table,
+        "enriched_table": enriched_table,
     })
 
 
@@ -151,6 +160,7 @@ def start_view(request):
                     "result": val_base,
                     "bin": bin_val
                 })
+                enriched_table = enrich_table_data_with_operations(table_data)
 
         # Подготавливаем параметры для передачи
         params = {
@@ -159,7 +169,8 @@ def start_view(request):
             "elements": json.dumps(elements),
             "level_labels": json.dumps(level_labels),
             "table_data": json.dumps(table_data),
-            "max_level":len(levels) - 1,
+            "enriched_table": json.dumps(enriched_table),  # ← вот это добавлено
+            "max_level": len(levels) - 1,
             "attempts": 3
         }
 
@@ -169,34 +180,34 @@ def start_view(request):
 
     return render(request, "logic_app/start.html")
 
+
 def verification_view(request):
-    # Получаем данные из GET-параметров
     fio = request.GET.get("fio", "")
     run_number = request.GET.get("run", "")
     attempts_left = int(request.GET.get("attempts", 3))
-    # Десериализуем данные из JSON строк
-    elements_json = request.GET.get("elements", "[]")
-    level_labels_json = request.GET.get("level_labels", "[]")
-    table_data_json = request.GET.get("table_data", "[]")
     max_level = request.GET.get("max_level", 0)
+
     try:
-        elements = json.loads(elements_json)
-        level_labels = json.loads(level_labels_json)
-        table_data = json.loads(table_data_json)
+        elements = json.loads(request.GET.get("elements", "[]"))
+        level_labels = json.loads(request.GET.get("level_labels", "[]"))
+        table_data = json.loads(request.GET.get("table_data", "[]"))
+        enriched_table = json.loads(request.GET.get("enriched_table", "{}"))
     except json.JSONDecodeError:
         elements = []
         level_labels = []
         table_data = []
+        enriched_table = {}
 
-    return render(request, "logic_app/graph.html", {
+    return render(request, "logic_app/verification.html", {
+        "max_level": max_level,
         "elements": elements,
         "level_labels": level_labels,
         "table_data": table_data,
-        "fio": fio,
-        "run_number": run_number,
-        "max_level": max_level,
-        "attempts_left": attempts_left,
+        "enriched_table": enriched_table,
+        "enriched_rows": enriched_table,
     })
+
+
 
 def verify_view(request):
     if request.method == "POST":
@@ -230,124 +241,22 @@ def verify_view(request):
             "run_number": run_number,
             "answers": answers,
             "comment": comment,
-            "attempts_left": 4-attempts_left ,
-            "elements_json":elements_json,
+            "attempts_left": 4 - attempts_left,
+            "elements_json": elements_json,
             "expected": expected_str,
-            "level_labels_json":level_labels_json,
+            "level_labels_json": level_labels_json,
             "now": datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
             "is_correct": is_correct,
-            "table_data_json":table_data_json,
-            "max_level":max_level
+            "table_data_json": table_data_json,
+            "max_level": max_level
         })
 
 
-def generate_report_file(request):
-    # Получаем данные из сессии или контекста
-    fio = request.session.get('fio', 'Неизвестный пользователь')
-    run_number = request.session.get('run_number', '1')
-    attempt_number = request.session.get('attempt_number', '1')
-    user_answers = request.session.get('user_answers', [])
-    correct_answers = request.session.get('correct_answers', [])
-    comment = request.session.get('comment', 'Нет комментария')
-
-    # Формируем текст отчета
-    report_text = f"""ОТЧЁТ О ПРОВЕРКЕ МОДЕЛИ
-==================================================
-Дата: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-Пользователь: {fio}
-Прогон №: {run_number}
-Попытка: {attempt_number}
-
-РЕЗУЛЬТАТЫ:
-- Ответ пользователя: {' '.join(user_answers)}
-- Правильный ответ: {' '.join(correct_answers)}
-
-КОММЕНТАРИЙ ПОЛЬЗОВАТЕЛЯ:
-{comment if comment.strip() else 'Нет комментария'}
-"""
-
-    # Создаем временный файл
-    temp_file = os.path.join('temp', f'report_{fio}_{run_number}_{attempt_number}.txt')
-    os.makedirs('temp', exist_ok=True)
-    with open(temp_file, 'w', encoding='utf-8') as f:
-        f.write(report_text)
-
-    # Возвращаем файл для скачивания
-    response = FileResponse(open(temp_file, 'rb'))
-    response[
-        'Content-Disposition'] = f'attachment; filename="отчет_{fio}_прогон_{run_number}_попытка_{attempt_number}.txt"'
-    return response
-
-
-def generate_protocol_file(request):
-    # Получаем данные графа из сессии
-    graph_data = request.session.get('graph_data', [])
-    fio = request.session.get('fio', 'Неизвестный пользователь')
-    run_number = request.session.get('run_number', '1')
-
-    # Формируем текст протокола с двумя колонками
-    protocol_lines = [
-        "ПРОТОКОЛ МОДЕЛИ",
-        "=" * 50,
-        f"Пользователь: {fio}",
-        f"Прогон №: {run_number}",
-        f"Дата: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        ""
-    ]
-
-    for level_idx, level in enumerate(graph_data):
-        protocol_lines.append(f"УРОВЕНЬ {level_idx}")
-        protocol_lines.append("-" * 50)
-
-        if level_idx == 0:
-            # Для входного уровня
-            protocol_lines.append("Значение y | Основание k")
-            protocol_lines.append("-" * 25)
-            for node in level:
-                protocol_lines.append(f"{node[1]} | {node[0]}")
-        else:
-            # Для операционных уровней
-            protocol_lines.append("Операция и аргументы | Результат (основание)")
-            protocol_lines.append("-" * 50)
-
-            for node in level:
-                op_code = node[0]
-                inputs = node[1:-3]
-                base = node[-3]
-                result = node[-2]
-                op_name = OPERATIONS[op_code] if op_code < len(OPERATIONS) else f"Операция {op_code}"
-
-                # Формируем строку аргументов
-                args = []
-                for i in inputs:
-                    prev_node = graph_data[level_idx - 1][i]
-                    args.append(f"{prev_node[1]}_{prev_node[0]}")
-                args_str = ", ".join(args)
-
-                # Формируем строку операции
-                operation_str = f"{op_name} ({args_str})"
-                result_str = f"{result}_{base}"
-
-                protocol_lines.append(f"{operation_str} | {result_str}")
-
-        protocol_lines.append("=" * 50)
-        protocol_lines.append("")
-
-    # Создаем временный файл
-    temp_file = os.path.join('temp', f'protocol_{fio}_{run_number}.txt')
-    os.makedirs('temp', exist_ok=True)
-    with open(temp_file, 'w', encoding='utf-8') as f:
-        f.write("\n".join(protocol_lines))
-
-    # Возвращаем файл для скачивания
-    response = FileResponse(open(temp_file, 'rb'))
-    response['Content-Disposition'] = f'attachment; filename="протокол_{fio}_прогон_{run_number}.txt"'
-    return response
 
 
 def get_report_content(request):
     if request.method == "GET":
-    # Получаем данные для отчета
+        # Получаем данные для отчета
         fio = request.GET.get('fio', 'Неизвестный пользователь')
         run_number = request.GET.get('run_number', '1')
         attempt_number = request.GET.get('attempt_number', '1')
@@ -362,11 +271,11 @@ def get_report_content(request):
     Пользователь: {fio}
     Прогон №: {run_number}
     Попытка: {attempt_number}
-    
+
     РЕЗУЛЬТАТЫ:
     - Ответ пользователя: {' '.join(user_answers)}
     - Правильный ответ: {' '.join(correct_answers)}
-    
+
     КОММЕНТАРИЙ ПОЛЬЗОВАТЕЛЯ:
     {comment if comment.strip() else 'Нет комментария'}
     """

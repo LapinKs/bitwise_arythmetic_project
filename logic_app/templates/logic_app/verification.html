@@ -40,7 +40,7 @@
             height: 600px;
             overflow: auto;
             position: relative;
-            margin-right: auto;
+            margin: auto;
             border: 1px solid #ddd;
             margin-top: 30px;
         }
@@ -98,6 +98,9 @@
             font-weight: bold;
             color: #dc3545;
         }
+        .vished{
+            margin:auto;
+        }
         .mainc{
         align-content:space-between;
         display: flex;  /* Включает flexbox */
@@ -144,29 +147,60 @@
 }
 
 .tooltip-content {
-    visibility: hidden;
-    width: 400px;
-    background-color: #fefefe;
-    color: #000;
-    text-align: left;
-    border-radius: 8px;
-    padding: 16px;
-    border: 1px solid #ccc;
-    position: absolute;
-    z-index: 1000;
-    top: 100%; /* положение ниже элемента */
-    left: -50%;
-    transform: translateX(-50%);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    font-size: 14px;
+    margin:auto;
+    max-width: 90%;
 }
 
 .tooltip-container:hover .tooltip-content {
     visibility: visible;
 }
+                .download-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+            margin-top: 20px;
+        }
     </style>
 </head>
-<body>
+<body><h2>Верификация узлов модели</h2>
+<h3>Входные данные (уровень 0):</h3>
+<p>
+  {% for row in table_data %}
+    {% if row.level == 0 %}
+      {{ row.result }}_{{ row.base }}{% if not forloop.last %}, {% endif %}
+    {% endif %}
+  {% endfor %}
+</p>
+{% for level, rows in enriched_table.items %}
+  <h3>Уровень {{ level }}</h3>
+  <table>
+      <thead>
+          <tr>
+              <th>Уровень</th>
+              <th>Индекс узла</th>
+              <th>Операция</th>
+              <th>Результат эталонной модели</th>
+              <th>Результат верификатора</th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for row in rows %}
+          <tr>
+              <td>{{ row.level }}</td>
+              <td>{{ row.node }}</td>
+              <td>{{ row.operation_expr }}</td>
+              <td>{{ row.reference_result }}</td>
+              <td>{{ row.verifier_result }}</td>
+          </tr>
+          {% endfor %}
+      </tbody>
+  </table>
+{% endfor %}
+
+
  <div style="margin: 10px; font-size: 18px;">
 </div>
     <div id="cy-container">

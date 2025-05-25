@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from logic_app.views import graph_view,start_view,save_attempt_log, download_protocol,verify_view,generate_report_file,generate_protocol_file,get_protocol_content,get_report_content, verification_view
+from logic_app.views import graph_view,start_view,save_attempt_log, download_protocol,verify_view,get_protocol_content,get_report_content, verification_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),

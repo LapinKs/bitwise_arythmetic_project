@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>Логический граф</title>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.24.0/cytoscape.min.js"></script>
     <style>
         body {
@@ -166,6 +167,43 @@
     </style>
 </head>
 <body>
+<h2>Верификация узлов модели</h2>
+<h3>Входные данные (уровень 0):</h3>
+<p>
+  {% for row in table_data %}
+    {% if row.level == 0 %}
+      {{ row.result }}_{{ row.base }}{% if not forloop.last %}, {% endif %}
+    {% endif %}
+  {% endfor %}
+</p>
+{% for level, rows in enriched_table.items %}
+  <h3>Уровень {{ level }}</h3>
+  <table>
+      <thead>
+          <tr>
+              <th>Уровень</th>
+              <th>Индекс узла</th>
+              <th>Операция</th>
+              <th>Результат эталонной модели</th>
+              <th>Результат верификатора</th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for row in rows %}
+          <tr>
+              <td>{{ row.level }}</td>
+              <td>{{ row.node }}</td>
+              <td>{{ row.operation_expr }}</td>
+              <td>{{ row.reference_result }}</td>
+              <td>{{ row.verifier_result }}</td>
+          </tr>
+          {% endfor %}
+      </tbody>
+  </table>
+{% endfor %}
+
+
+
  <div style="margin: 10px; font-size: 18px; display:flex; flex-direction:row;justify-content: center;  gap: 40px;
     align-items: flex-start; ">
     <h3 style = "text-align:center;">Пользователь: {{ fio }}</h3>
@@ -380,7 +418,7 @@ n уровень:Выходной уровень модели, на которо
 <input type="hidden" id="attempts-left" value="{{ attempts_left }}">
 
 <!-- Кнопка проверки -->
-<input type="button" id="attempt-button" value="Проверить попытку" data-max-attempts="3">
+<input type="button" id="attempt-button" value="Проверить попытку" data-max-attempts="3"  >
 
 <!-- Кнопки скачивания (изначально скрыты) -->
 <a class="download-button" onclick="downloadReport()" style="display: none;">Скачать отчет</a>
@@ -388,6 +426,13 @@ n уровень:Выходной уровень модели, на которо
 <a class="download-button" id="verification-btn" style="display: none;">
     <form method="post" action="{% url 'verification' %}">
         {% csrf_token %}
+         <input type="hidden" name="fio" value="{{ fio }}">
+
+    <input type="hidden" name="elements" value='{{ elements|escapejs }}'>
+    <input type="hidden" name="level_labels" value='{{ level_labels|escapejs }}'>
+    <input type="hidden" name="table_data" value='{{ table_data|escapejs }}'>
+    <input type="hidden" name="enriched_table" value='{{ enriched_table|escapejs }}'>
+    <input type="hidden" name="max_level" value="{{ max_level }}">
         <button type="submit">Верификация</button>
     </form>
 </a>
